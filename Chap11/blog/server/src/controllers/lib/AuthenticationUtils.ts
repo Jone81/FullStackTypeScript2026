@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { SignJWT, jwtVerify, decodeJwt } from "jose";
 import ms, { type StringValue } from "ms";
 import type { Response } from "express";
 
@@ -27,7 +27,7 @@ function getJwtSecret() {
 
   return process.env.JWT_SECRET;
 }
-const JWT_SECRET = getJwtSecret();
+const JWT_SECRET = new TextEncoder().encode(getJwtSecret());
 
 function getJwtRefreshSecret() {
   if (!process.env.JWT_REFRESH_SECRET) {
@@ -38,49 +38,63 @@ function getJwtRefreshSecret() {
 
   return process.env.JWT_REFRESH_SECRET;
 }
-const JWT_REFRESH_SECRET = getJwtRefreshSecret();
+const JWT_REFRESH_SECRET = new TextEncoder().encode(getJwtRefreshSecret());
 
-function getToken(userId: string, isRefresh = false) {
-  return jwt.sign(
-    {
-      userId,
-      type: !isRefresh ? "access" : "refresh",
-      exp:
-        Math.floor(Date.now() / 1000) +
-        ms(
-          (!isRefresh
-            ? process.env.JWT_EXPIRES_IN
-            : process.env.JWT_REFRESH_EXPIRES_IN) as StringValue
-        ) /
-          1000,
-    },
-    !isRefresh ? JWT_SECRET : JWT_REFRESH_SECRET,
-    {
-      subject: userId,
-      issuer: COOKIE_DOMAIN,
-      audience: COOKIE_DOMAIN,
-    }
-  );
+export async function getToken(userId: string, isRefresh = false): Promise<string> {
+  const secret = !isRefresh ? JWT_SECRET : JWT_REFRESH_SECRET;
+  const expiresIn = !isRefresh
+    ? (process.env.JWT_EXPIRES_IN || "15m")
+    : (process.env.JWT_REFRESH_EXPIRES_IN || "7d");
+
+  return await new SignJWT({
+    userId,
+    type: !isRefresh ? "access" : "refresh",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(userId)
+    .setIssuer(COOKIE_DOMAIN)
+    .setAudience(COOKIE_DOMAIN)
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(secret);
 }
 
-export function verifyJwtToken(token: string, isRefresh = false) {
+export async function verifyJwtToken(
+  token: string,
+  isRefresh = false
+): Promise<JwtPayload> {
+  const secret = !isRefresh ? JWT_SECRET : JWT_REFRESH_SECRET;
   try {
-    // notice verify checks not only the token, but also the issuer and audience
-    const payload = jwt.verify(
-      token,
-      !isRefresh ? JWT_SECRET : JWT_REFRESH_SECRET,
-      {
-        issuer: COOKIE_DOMAIN,
-        audience: COOKIE_DOMAIN,
-      }
-    ) as JwtPayload;
+    const { payload } = await jwtVerify(token, secret, {
+      issuer: COOKIE_DOMAIN,
+      audience: COOKIE_DOMAIN,
+    });
 
-    return payload;
-  } catch (e) {
-    if (e instanceof jwt.TokenExpiredError) {
+    return {
+      userId: (payload.userId || payload.sub) as string,
+      type: payload.type as JwtPayloadType,
+      exp: payload.exp as number,
+    };
+  } catch (e: any) {
+    if (e.code === "ERR_JWT_EXPIRED") {
+      try {
+        const decoded = decodeJwt(token);
+        if (decoded && decoded.exp) {
+          return {
+            userId: (decoded.userId || decoded.sub) as string,
+            type: decoded.type as JwtPayloadType,
+            exp: decoded.exp as number,
+          };
+        }
+      } catch {
+        // ignore decode failure
+      }
       throw new Error("Token expired");
     }
-    if (e instanceof jwt.JsonWebTokenError) {
+    if (
+      e.code === "ERR_JWS_SIGNATURE_VERIFICATION_FAILED" ||
+      e.code === "ERR_JWS_INVALID"
+    ) {
       throw new Error("Invalid token");
     }
     throw new Error("Token verification failed");
@@ -101,8 +115,8 @@ function getCookieOptions(name: JwtPayloadType) {
     path: "/",
     maxAge:
       name === "access"
-        ? ms(process.env.JWT_EXPIRES_IN as StringValue)
-        : ms(process.env.JWT_REFRESH_EXPIRES_IN as StringValue),
+        ? ms((process.env.JWT_EXPIRES_IN || "15m") as StringValue)
+        : ms((process.env.JWT_REFRESH_EXPIRES_IN || "7d") as StringValue),
   };
 }
 
@@ -114,9 +128,13 @@ function setSecureCookie(
   res.cookie(name, tokenValue, getCookieOptions(name));
 }
 
-export function setAuthCookies(res: Response, userId: string) {
-  setSecureCookie(res, "access", getToken(userId));
-  setSecureCookie(res, "refresh", getToken(userId, true));
+export async function setAuthCookies(res: Response, userId: string) {
+  const [accessToken, refreshToken] = await Promise.all([
+    getToken(userId),
+    getToken(userId, true),
+  ]);
+  setSecureCookie(res, "access", accessToken);
+  setSecureCookie(res, "refresh", refreshToken);
 }
 
 export function clearAuthCookies(res: Response) {

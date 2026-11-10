@@ -24,7 +24,7 @@ export const authenticationHandler = async (
     }
 
     // 2. verify the access token is valid
-    const payload = verifyJwtToken(token);
+    const payload = await verifyJwtToken(token);
     if (payload.type !== "access") {
       logger.warn(`Invalid token type ${payload.type}`);
       return res.status(401).json({ message: AUTH_ERROR_MESSAGE });
@@ -45,7 +45,7 @@ export const authenticationHandler = async (
         clearAuthCookies(res);
         return res.status(401).json({ message: AUTH_ERROR_MESSAGE });
       }
-      const refreshPayload = verifyJwtToken(refreshToken, true);
+      const refreshPayload = await verifyJwtToken(refreshToken, true);
       if (refreshPayload.type !== "refresh") {
         logger.warn(`Invalid refresh token type ${refreshPayload.type}`);
         clearAuthCookies(res);
@@ -71,7 +71,7 @@ export const authenticationHandler = async (
       }
 
       clearAuthCookies(res);
-      setAuthCookies(res, payload.userId);
+      await setAuthCookies(res, payload.userId);
     }
 
     // 4. if successful, set the userId on the request for downstream handlers

@@ -57,7 +57,7 @@ export const login = async (
     }
 
     const userId = result.profileId!.toString();
-    setAuthCookies(res, userId);
+    await setAuthCookies(res, userId);
 
     res.status(200).json({
       userId,
