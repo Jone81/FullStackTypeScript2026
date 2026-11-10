@@ -38,8 +38,8 @@ router.post("/profile/login", login);
 
 router.post(
   "/profile/new",
-  validate({ body: createProfileSchema }),
   upload.single("file"),
+  validate({ body: createProfileSchema }),
   createProfile
 );
 router.get("/profile/:profileId", getProfile);

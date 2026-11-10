@@ -171,7 +171,7 @@ describe("POST /profile/new", () => {
     cleanup();
   });
 
-  it.only("test create new profile validation", async () => {
+  it("test create new profile validation", async () => {
     const { repo, cleanup } = await createClientAndTestDb();
     const app = new Api(repo).App;
 
