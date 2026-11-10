@@ -1,9 +1,8 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import Api from "./app.js";
 import { repo } from "./repository/Repository.js";
 
-dotenv.config();
-const port = process.env.PORT;
+const port = process.env.PORT || 4001;
 
 const api = new Api(repo);
 const app = api.App;
