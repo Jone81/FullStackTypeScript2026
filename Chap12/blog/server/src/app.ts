@@ -36,10 +36,24 @@ export default class Api {
     this.#app.use(
       cors({
         credentials: true,
-        origin:
-          process.env.CLIENT_URL ||
-          process.env.ALLOWED_ORIGINS ||
-          "http://localhost:5173",
+        origin: (origin, callback) => {
+          const allowed = [
+            process.env.CLIENT_URL,
+            process.env.ALLOWED_ORIGINS,
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+          ].filter(Boolean);
+          if (
+            !origin ||
+            allowed.includes(origin) ||
+            /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+          ) {
+            callback(null, true);
+          } else {
+            callback(new Error("Not allowed by CORS"));
+          }
+        },
       })
     );
     this.#app.use(cookieParser());
