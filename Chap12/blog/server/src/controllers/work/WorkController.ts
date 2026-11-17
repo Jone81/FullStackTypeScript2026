@@ -136,9 +136,9 @@ export const getPopularWork = async (
       .json(
         serializeBigInt(
           await req.repo.Work.selectMostPopularWorks(
-            topicId,
+            topicId ? BigInt(topicId) : undefined,
             pageSize,
-            lastCursor
+            lastCursor ? BigInt(lastCursor) : undefined
           )
         )
       );
@@ -155,9 +155,9 @@ export const getLatestWork = async (
   try {
     const { id, pageSize, lastCursor }: PagingParams = req.body;
     const works = await req.repo.Work.selectLatestWorksByAuthor(
-      id,
+      BigInt(id),
       pageSize,
-      lastCursor
+      lastCursor ? BigInt(lastCursor) : undefined
     );
 
     res.status(200).json(serializeBigInt(works));
@@ -219,9 +219,9 @@ export const getWorksByTopic = async (
   try {
     const { id, pageSize, lastCursor }: PagingParams = req.body;
     const works = await req.repo.Work.selectWorksByTopic(
-      id,
+      BigInt(id),
       pageSize,
-      lastCursor
+      lastCursor ? BigInt(lastCursor) : undefined
     );
 
     res.status(200).json(serializeBigInt(works));
@@ -241,10 +241,11 @@ export const searchWorks = async (
       pageSize,
       lastCursor,
     }: { searchTxt: string; pageSize: number; lastCursor: bigint } = req.body;
+    const query = searchTxt || (req.body as any).id || "";
     const works = await req.repo.Work.searchWorks(
-      searchTxt,
+      query,
       pageSize,
-      lastCursor
+      lastCursor ? BigInt(lastCursor) : undefined
     );
 
     res.status(200).json(serializeBigInt(works));

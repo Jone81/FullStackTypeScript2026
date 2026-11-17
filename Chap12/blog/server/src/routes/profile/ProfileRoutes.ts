@@ -34,7 +34,7 @@ router.post(
 );
 
 router.get("/profile/avatar/:avatarId", getProfileAvatar);
-router.post("/profile/login", login);
+router.post("/profile/login", upload.none(), login);
 
 router.post(
   "/profile/new",

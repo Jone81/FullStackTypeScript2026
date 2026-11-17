@@ -70,9 +70,11 @@ export function Explorer() {
     if (!topics) return;
 
     setTopicName(
-      upperCaseFirstLetterOfWords(
-        topics.find((topic) => topic.id === topic_id)?.name || ""
-      )
+      topic_id
+        ? upperCaseFirstLetterOfWords(
+            topics.find((topic) => topic.id === topic_id)?.name || ""
+          )
+        : "Popular Stories"
     );
 
     const topicItems: JSX.Element[] = [];
@@ -110,7 +112,7 @@ export function Explorer() {
     } else {
       const works: WorkWithAuthorModel[] | null | undefined = topic_id
         ? await api?.uiApi.getWorksByTopic(topic_id, PAGE_SIZE, lastCursor)
-        : null;
+        : await api?.uiApi.getMostPopularWorks(undefined, PAGE_SIZE, lastCursor);
 
       if (!works || works.length === 0) {
         return null;

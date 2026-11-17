@@ -12,15 +12,15 @@ export const createWorkResponse = async (
       workId,
       responderId,
       response,
-    }: { workId: bigint; responderId: bigint; response: string } = req.body;
+    }: { workId: string | bigint; responderId: string | bigint; response: string } = req.body;
     res
       .status(200)
       .json(
         serializeBigInt(
           (
             await req.repo.WorkResp.insertWorkResponse(
-              workId,
-              responderId,
+              BigInt(workId),
+              BigInt(responderId),
               response
             )
           ).id
@@ -42,7 +42,11 @@ export const getWorkResponses = async (
       .status(200)
       .json(
         serializeBigInt(
-          await req.repo.WorkResp.selectWorkResponses(id, pageSize, lastCursor)
+          await req.repo.WorkResp.selectWorkResponses(
+            BigInt(id),
+            pageSize,
+            lastCursor ? BigInt(lastCursor) : undefined
+          )
         )
       );
   } catch (e) {
@@ -62,9 +66,9 @@ export const getWorkResponsesByAuthor = async (
       .json(
         serializeBigInt(
           await req.repo.WorkResp.selectWorkResponsesByAuthor(
-            id,
+            BigInt(id),
             pageSize,
-            lastCursor
+            lastCursor ? BigInt(lastCursor) : undefined
           )
         )
       );

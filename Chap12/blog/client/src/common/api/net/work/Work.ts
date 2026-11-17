@@ -28,9 +28,10 @@ export async function createWork(
       content,
       authorId,
       topicIds,
-      images,
+      imagesPlaceholders: images.map((img) => img.imagePlaceholder),
     }),
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
   });
   if (!response.ok) {
     throw new Error("Failed to create new work");
@@ -54,9 +55,10 @@ export async function updateWork(
       description,
       content,
       topicIds,
-      images,
+      imagesPlaceholders: images.map((img) => img.imagePlaceholder),
     }),
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
   });
   if (!response.ok) {
     throw new Error("Failed to update work");
@@ -65,7 +67,7 @@ export async function updateWork(
 }
 
 export async function getWork(workId: string) {
-  const response = await fetch(`${GET_WORK_URL}${workId}}`, {
+  const response = await fetch(`${GET_WORK_URL}${workId}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
@@ -201,6 +203,7 @@ export async function searchWorks(
   const response = await fetch(GET_WORKS_BY_SEARCH_URL, {
     method: "POST",
     body: JSON.stringify({
+      searchTxt,
       id: searchTxt,
       pageSize,
       lastCursor,

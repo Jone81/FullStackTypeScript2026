@@ -7,13 +7,12 @@ export const createWorkLike = async (
   next: NextFunction
 ) => {
   try {
-    const { workId, likerId }: { workId: bigint; likerId: bigint } = req.body;
-    console.log(workId, likerId);
+    const { workId, likerId }: { workId: string | bigint; likerId: string | bigint } = req.body;
     res
       .status(200)
       .json(
         serializeBigInt(
-          (await req.repo.WorkLikes.insertWorkLike(workId, likerId)).id
+          (await req.repo.WorkLikes.insertWorkLike(BigInt(workId), BigInt(likerId))).id
         )
       );
   } catch (e) {
@@ -27,7 +26,7 @@ export const getWorkLikesCount = async (
   next: NextFunction
 ) => {
   try {
-    const workId = req.params.workId as unknown as bigint;
+    const workId = BigInt(req.params.workId as string);
     res.status(200).json(await req.repo.WorkLikes.selectWorkLikesCount(workId));
   } catch (e) {
     next(e);

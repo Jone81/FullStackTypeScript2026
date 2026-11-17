@@ -51,6 +51,21 @@ export function ProfileForm({
           const profile = await api?.uiApi.getProfile(newProfileId!.toString());
           if (!profile) throw new Error("Profile has not been created!");
 
+          // Auto-login to set HTTP-only auth cookies
+          try {
+            await fetch("http://localhost:4001/profile/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                userName: formData.get("userName")?.toString(),
+                password: formData.get("password")?.toString(),
+              }),
+            });
+          } catch (loginErr) {
+            console.log("Auto-login error:", loginErr);
+          }
+
           setProfile({
             id: profile.id,
             updatedAt: profile.updatedAt,
@@ -155,9 +170,27 @@ export function ProfileForm({
     }
   };
 
+  const validatePassword = (strInput: string): string => {
+    if (pageState !== PageState.Create) return "";
+    if (!strInput || strInput.length < 10) {
+      return "Password must be at least 10 characters";
+    }
+    if (strInput.length > 50) {
+      return "Password must be less than 50 characters";
+    }
+    return "";
+  };
+
   const validateAllFields = (): boolean => {
     if (!formData) {
       setValidationMsg("Form data is not entered");
+      return false;
+    }
+    const passwordValidation = validatePassword(
+      formData.get("password")?.toString() || ""
+    );
+    if (passwordValidation) {
+      setValidationMsg(passwordValidation);
       return false;
     }
     const usernameValidation = validateUsername(
@@ -218,6 +251,18 @@ export function ProfileForm({
           className="profile-form-item"
         ></input>
       </section>
+      {pageState === PageState.Create ? (
+        <section className="profile-form-section">
+          <label htmlFor="password">Password (min 10 chars)</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            className="profile-form-item"
+            placeholder="At least 10 characters"
+          ></input>
+        </section>
+      ) : null}
       <section className="profile-form-section">
         <label htmlFor="fullname">Fullname</label>
         <input

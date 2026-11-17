@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import { type FollowParams } from "./FollowModels";
 import { serializeBigInt } from "lib/src/JsonUtils";
 import { type PagingParams } from "../PagingParams";
 
@@ -9,12 +8,12 @@ export async function createFollow(
   next: NextFunction
 ) {
   try {
-    const { followedId, followerId }: FollowParams = req.body;
+    const { followedId, followerId }: { followedId: string | bigint; followerId: string | bigint } = req.body;
     res
       .status(200)
       .json(
         serializeBigInt(
-          (await req.repo.Follow.insertFollow(followedId, followerId)).id
+          (await req.repo.Follow.insertFollow(BigInt(followedId), BigInt(followerId))).id
         )
       );
   } catch (e) {
@@ -33,7 +32,11 @@ export async function getFollowers(
       .status(200)
       .json(
         serializeBigInt(
-          await req.repo.Follow.selectFollowers(id, pageSize, lastCursor)
+          await req.repo.Follow.selectFollowers(
+            BigInt(id),
+            pageSize,
+            lastCursor ? BigInt(lastCursor) : undefined
+          )
         )
       );
   } catch (e) {
@@ -67,7 +70,11 @@ export async function getFollowed(
       .status(200)
       .json(
         serializeBigInt(
-          await req.repo.Follow.selectFollowed(id, pageSize, lastCursor)
+          await req.repo.Follow.selectFollowed(
+            BigInt(id),
+            pageSize,
+            lastCursor ? BigInt(lastCursor) : undefined
+          )
         )
       );
   } catch (e) {
