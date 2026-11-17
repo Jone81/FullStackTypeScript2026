@@ -135,6 +135,7 @@ export async function setAuthCookies(res: Response, userId: string) {
   ]);
   setSecureCookie(res, "access", accessToken);
   setSecureCookie(res, "refresh", refreshToken);
+  return { accessToken, refreshToken };
 }
 
 export function clearAuthCookies(res: Response) {

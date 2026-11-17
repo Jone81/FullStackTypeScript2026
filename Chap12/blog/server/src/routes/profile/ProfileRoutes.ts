@@ -2,11 +2,13 @@ import { Router } from "express";
 import {
   createProfile,
   createProfileAvatar,
+  getMe,
   getMostPopularAuthors,
   getProfile,
   getProfileAvatar,
   login,
   logout,
+  refresh,
   updateProfile,
 } from "../../controllers/ProfileController";
 import multer from "multer";
@@ -25,7 +27,9 @@ router.post(
   upload.single("file"),
   createProfileAvatar
 );
-router.post("/profile/logout", authenticationHandler, logout);
+router.post("/profile/logout", logout);
+router.post("/profile/refresh", refresh);
+router.get("/profile/me", authenticationHandler, getMe);
 router.post(
   "/profile/update",
   authenticationHandler,

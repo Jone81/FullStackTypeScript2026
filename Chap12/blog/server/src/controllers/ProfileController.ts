@@ -1,7 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 import { serializeBigInt } from "lib";
 import { OctetType } from "./lib/Constants";
-import { clearAuthCookies, setAuthCookies } from "./lib/AuthenticationUtils";
+import {
+  clearAuthCookies,
+  setAuthCookies,
+  verifyJwtToken,
+} from "./lib/AuthenticationUtils";
 import type z from "zod";
 import type { createProfileSchema } from "lib/dist/validation/ProfileSchema";
 
@@ -57,13 +61,68 @@ export const login = async (
     }
 
     const userId = result.profileId!.toString();
-    await setAuthCookies(res, userId);
+    const { accessToken } = await setAuthCookies(res, userId);
 
     res.status(200).json({
       userId,
+      accessToken,
     });
   } catch (e) {
     console.log("login error:", e);
+    next(e);
+  }
+};
+
+export const refresh = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const refreshToken = req.cookies?.["refresh"] as string;
+    if (!refreshToken) {
+      res.status(401).json({ message: "No refresh token provided" });
+      return;
+    }
+
+    const payload = await verifyJwtToken(refreshToken, true);
+    if (payload.type !== "refresh") {
+      clearAuthCookies(res);
+      res.status(401).json({ message: "Invalid refresh token" });
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload.exp || payload.exp <= now) {
+      clearAuthCookies(res);
+      res.status(401).json({ message: "Refresh token expired" });
+      return;
+    }
+
+    const { accessToken } = await setAuthCookies(res, payload.userId);
+    res.status(200).json({
+      userId: payload.userId,
+      accessToken,
+    });
+  } catch (e) {
+    clearAuthCookies(res);
+    next(e);
+  }
+};
+
+export const getMe = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ message: "Not authenticated" });
+      return;
+    }
+    const profile = await req.repo.Profile.selectProfile(req.userId);
+    res.status(200).json(profile ? serializeBigInt(profile) : null);
+  } catch (e) {
     next(e);
   }
 };

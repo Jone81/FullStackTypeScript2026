@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createWork,
+  deleteWork,
   getLatestWork,
   getPopularWork,
   getWork,
@@ -31,6 +32,7 @@ router.post(
   updateWork
 );
 router.get("/work/:id", getWork);
+router.delete("/work/:id", authenticationHandler, deleteWork);
 router.post("/work_popular", getPopularWork);
 router.post("/work_latest", getLatestWork);
 router.post("/work_followed", getWorksOfFollowed);

@@ -38,12 +38,19 @@ export const createWork = async (
       }
     }
 
+    const resolvedAuthorId = authorId ? BigInt(authorId) : req.userId!;
+    const resolvedTopicIds = Array.isArray(topicIds)
+      ? topicIds.map((t) => BigInt(t))
+      : topicIds
+      ? [BigInt(topicIds)]
+      : [];
+
     const newWork = await req.repo.Work.insertWork(
       title,
-      description,
+      description || "",
       content,
-      authorId,
-      topicIds,
+      resolvedAuthorId,
+      resolvedTopicIds,
       workImages
     );
 
@@ -94,16 +101,36 @@ export const updateWork = async (
       }
     }
 
+    const resolvedTopicIds = Array.isArray(topicIds)
+      ? topicIds.map((t) => BigInt(t))
+      : topicIds
+      ? [BigInt(topicIds)]
+      : [];
+
     await req.repo.Work.updateWork(
-      workId,
+      BigInt(workId),
       title,
-      description,
+      description || "",
       content,
       req.userId,
-      topicIds,
+      resolvedTopicIds,
       workImages
     );
 
+    res.status(204).send();
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const deleteWork = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const workId = BigInt(req.params.id as string);
+    await req.repo.Work.deleteWork(workId);
     res.status(204).send();
   } catch (e) {
     next(e);

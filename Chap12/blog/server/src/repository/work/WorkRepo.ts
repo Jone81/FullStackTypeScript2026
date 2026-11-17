@@ -57,6 +57,25 @@ export class WorkRepo {
     });
   }
 
+  async deleteWork(workId: bigint) {
+    return await this.#client.$transaction(async (tx) => {
+      await tx.workTopic.deleteMany({ where: { workId } });
+      await tx.workLike.deleteMany({ where: { workId } });
+      const responses = await tx.workResponse.findMany({
+        where: { workId },
+        select: { id: true },
+      });
+      if (responses.length > 0) {
+        await tx.workResponseLike.deleteMany({
+          where: { workResponseId: { in: responses.map((r) => r.id) } },
+        });
+      }
+      await tx.workResponse.deleteMany({ where: { workId } });
+      await tx.workImage.deleteMany({ where: { workId } });
+      return await tx.work.delete({ where: { id: workId } });
+    });
+  }
+
   async updateWork(
     workId: bigint,
     title: string,

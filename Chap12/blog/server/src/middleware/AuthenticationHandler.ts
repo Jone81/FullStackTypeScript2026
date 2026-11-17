@@ -15,8 +15,12 @@ export const authenticationHandler = async (
   next: NextFunction
 ) => {
   try {
-    // 1. verify the access token exists
-    const token = req.cookies?.["access"] as string;
+    // 1. verify the access token exists (from cookie or Authorization Bearer header)
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : undefined;
+    const token = (req.cookies?.["access"] as string) || bearerToken;
     if (!token) {
       logger.warn("No authorization token provided");
       res.status(401).json({ message: AUTH_ERROR_MESSAGE });
